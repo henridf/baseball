@@ -3,21 +3,19 @@
 > NOTE: This is a work in progress and needs to be updated to the latest
 > version of zq with the baked ZSON format and the shape aggregator.
 
-This repository contains a simple demonstration of the Z data model
-using baseball statistics as an example.
+This repository contains a simple demonstration of `zq` using baseball
+statistics as an example.
 
-The Z data model is a new approach to data that embraces both the schema-rigid
-model of relational tables as well as the semi-structured model of JSON.
-[`zq`](https://github.com/brimsec/zq)
-is a command-line tool for desktop search and analytics over
-ZNG files, which blends UX concepts from log search and SQL.
+[`zq`](https://github.com/brimsec/zq) is a command-line tool for
+desktop search and analytics over JSON (and other fast and/or more
+expressive formats formats), which blends UX concepts from log search
+and SQL.
 
 In this example, we will take a large set of relational tables
 conforming to a
-[complicated relational model](https://github.com/WebucatorTraining/lahman-baseball-mysql/blob/master/lahman-model.png)
-and dump them all into a "micro data lake" (i.e., a single file on your laptop)
-represented as  a file the ZNG data format (ZNG is a row-structured data format
-that  implements the Z data model).
+[complicated relational model](https://github.com/WebucatorTraining/lahman-baseball-mysql/blob/master/lahman-model.png),
+dump them all into a "micro data lake" (i.e., a single file on your
+laptop), and explore and analyze the data from there.
 
 If you want to use MySQL instead, this
 [github repo](https://github.com/WebucatorTraining/lahman-baseball-mysql)
@@ -27,14 +25,14 @@ into your server.
 R is also a great way to
 [wrangle this data](https://cran.r-project.org/web/packages/Lahman/Lahman.pdf).
 
-Or you can just make a ZNG file and use `zq`.
+Or you can just use `zq`.
 
 ## Setup
 
 You will need:
-* the Sean Lahman data set from 2019 in CSV format,
-* the `zq` CLI tool mentioned above, and
-* `cz` the simple tool in this repo for converting CSV to ZNG.
+* the Sean Lahman data set from 2019 in CSV format, and 
+* the `zq` CLI tool mentioned above.
+* (xxx assuming that cz is folded into zq)
 
 First, install zq.  You can download a
 [pre-built binary from Brim](https://www.brimsecurity.com/download/), or
@@ -42,10 +40,7 @@ if you have Go installed, you can grab it and related tooling from zq github rep
 ```
 go get github.com/brimsec/zq
 ```
-Next you'll need to install `cz` (a very small Go program that converts CSV to JSON):
-```
-go get github.com/mccanne/cz
-```
+
 Finally you need the data, in CSV form.  You can download the
 [2019 – comma-delimited version](https://github.com/chadwickbureau/baseballdatabank/archive/master.zip)
 from Sean Lahman's
@@ -55,20 +50,25 @@ The Lahman data will appear as a zip file called `baseballdatabank-master.zip`,
 which you should unzip into ``./baseballdatabank-master` and run the following command:
 ```
 unzip baseballdatabank-master.zip
-find baseballdatabank-master -name \*.csv -exec echo "cat" {} "| cz" \; | sh > bb.zng
+find baseballdatabank-master -name \*.csv -exec echo "cat" {} "| zq" -f ndjson \; | sh > bb.ndjson
 ```
-This gives you a file called `bb.zng`, which holds all of the tables from
+Here we've combined all the data into a single file, which holds all of the tables from
 the Lahamn data set as a stream of heterogenous records in accordance with
 the Z data model.  The file should be 25222375 bytes.  You can also confirm
 the number of rows that we collected:
 ```
-zq -f table "count()" bb.zng
+zq -f table "count()" bb.ndjson
 ```
 which should output
 ```
 COUNT
 586970
 ```
+
+
+IF this is too big to be zippy, then show that you can write it to a
+"binary format" and do `zq -f zng`... otherwise no need for zng here.
+
 
 ## Examples
 
@@ -210,7 +210,7 @@ rows in that file which is more or less equivalent to the table's schema.
 In Z, types are "first class", meaning there are "type values", which sounds
 abstract, but is really using because anything that's a value can be an
 aggregation key.  So, I can do a search for the key `dimagvi01` and
-group the results by the type of each row (aka Z record), and in this case
+group the results by the type of each row (aka CSV line or JSON object), and in this case
 apply the `first()` aggregation function to just give the first row that
 appears for each type, as follows:
 ```
@@ -367,7 +367,7 @@ This tables are very wide so I used JSON output with jq and we get this:
 > TBD: TAKE OUT 'r' above
 
 What's cool here is you don't have to look at any models or schemas.  Just
-throw all the data into a zng file and run type-oriented queries to
+throw all the data into zq file and run type-oriented queries to
 _introspectively_ discover the shape of the data.
 
 Ok, you're wondering did we find all of the schemas here by looking
